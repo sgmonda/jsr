@@ -158,6 +158,20 @@ export type PackageVersionDocs =
   | PackageVersionDocsContent
   | PackageVersionDocsRedirect;
 
+export type PackageDownloads = {
+  total: Array<TimeCount>;
+  recentVersions: Array<{
+    version: string;
+    downloads: Array<TimeCount>;
+  }>;
+};
+
+export type TimeCount = {
+  kind: "jsr_meta";
+  timeBucket: Date;
+  count: number;
+};
+
 export interface SourceDirEntry {
   name: string;
   size: number;

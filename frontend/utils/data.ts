@@ -4,6 +4,7 @@ import { APIResponse, path } from "./api.ts";
 import {
   FullScope,
   Package,
+  PackageDownloads,
   PackageVersionDocs,
   PackageVersionDocsRedirect,
   PackageVersionSource,
@@ -90,16 +91,27 @@ export async function packageDataWithDocs(
   version: string | undefined,
   docs: { all_symbols: "true" } | { entrypoint?: string; symbol?: string },
 ): Promise<PackageVersionDocsRedirect | DocsData | null> {
-  let [data, pkgDocsResp] = await Promise.all([
+  let [data, pkgDocsResp, downloadsResp] = await Promise.all([
     packageData(state, scope, pkg),
+
     state.api.get<PackageVersionDocs>(
       path`/scopes/${scope}/packages/${pkg}/versions/${
         version || "latest"
       }/docs`,
       docs,
     ) as Promise<APIResponse<PackageVersionDocs> | null>,
+
+    state.api.get<PackageDownloads>(
+      path`/scopes/${scope}/packages/${pkg}/downloads`,
+    ) as Promise<APIResponse<PackageDownloads> | null>,
   ]);
   if (data === null) return null;
+
+  const downloadsData = downloadsResp && ("data" in downloadsResp)
+    ? downloadsResp.data
+    : null;
+  const downloads = toTimelines(downloadsData);
+  console.log("RAW", (downloadsResp as any).data);
 
   if (pkgDocsResp && !pkgDocsResp.ok) {
     if (pkgDocsResp.code === "packageVersionNotFound") {
@@ -119,6 +131,7 @@ export async function packageDataWithDocs(
   if (pkgDocsResp === null) {
     return {
       ...data,
+      downloads,
       kind: "content",
       selectedVersion: null,
       selectedVersionIsLatestUnyanked: false,
@@ -129,6 +142,7 @@ export async function packageDataWithDocs(
   } else {
     return {
       ...data,
+      downloads,
       kind: "content",
       selectedVersion: pkgDocsResp!.data.version,
       selectedVersionIsLatestUnyanked: !version,
@@ -144,11 +158,43 @@ export async function packageDataWithDocs(
   }
 }
 
+export type Timeline = Array<{ date: Date; value: number }>;
+export type DownloadTimelines = Record<string | "total", Timeline>;
+
+const toTimelines = (
+  data: PackageDownloads | null,
+): DownloadTimelines => {
+  console.log("TO TIMELINE", data);
+  return {
+    current: [
+      { date: new Date("2024-10-03T00:00:00.000Z"), value: 30 },
+      { date: new Date("2024-10-04T00:00:00.000Z"), value: 40 },
+      { date: new Date("2024-10-05T00:00:00.000Z"), value: 50 },
+      { date: new Date("2024-10-06T00:00:00.000Z"), value: 60 },
+      { date: new Date("2024-10-07T00:00:00.000Z"), value: 30 },
+      { date: new Date("2024-10-08T00:00:00.000Z"), value: 80 },
+      { date: new Date("2024-10-09T00:00:00.000Z"), value: 76 },
+      { date: new Date("2024-10-10T00:00:00.000Z"), value: 20 },
+    ],
+    "0.1.2": [
+      { date: new Date("2024-10-03T00:00:00.000Z"), value: 10 },
+      { date: new Date("2024-10-04T00:00:00.000Z"), value: 90 },
+      { date: new Date("2024-10-05T00:00:00.000Z"), value: 30 },
+      { date: new Date("2024-10-06T00:00:00.000Z"), value: 40 },
+      { date: new Date("2024-10-07T00:00:00.000Z"), value: 30 },
+      { date: new Date("2024-10-08T00:00:00.000Z"), value: 10 },
+      { date: new Date("2024-10-09T00:00:00.000Z"), value: 26 },
+      { date: new Date("2024-10-10T00:00:00.000Z"), value: 90 },
+    ],
+  };
+};
+
 export interface DocsData extends PackageData {
   kind: "content";
   selectedVersion: PackageVersionWithUser | null;
   selectedVersionIsLatestUnyanked: boolean;
   docs: Docs | null;
+  downloads: DownloadTimelines | null;
 }
 
 export async function packageDataWithSource(

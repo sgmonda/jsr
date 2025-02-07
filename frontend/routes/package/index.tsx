@@ -18,6 +18,7 @@ export default define.page<typeof handler>(function PackagePage(
     <div>
       <PackageHeader
         package={data.package}
+        downloads={data.downloads}
         selectedVersion={data.selectedVersion ?? undefined}
       />
       <PackageNav
@@ -73,6 +74,7 @@ export const handler = define.handlers({
       scopeMember,
       selectedVersion,
       docs,
+      downloads,
     } = res as DocsData;
 
     if (scopeMember && pkg.versionCount === 0) {
@@ -96,6 +98,7 @@ export const handler = define.handlers({
         package: pkg,
         selectedVersion,
         docs,
+        downloads,
         member: scopeMember,
       },
       headers: { ...(ctx.params.version ? { "X-Robots-Tag": "noindex" } : {}) },

@@ -9,19 +9,25 @@ import { WarningTriangle } from "../../../components/icons/WarningTriangle.tsx";
 import { Tooltip } from "../../../components/Tooltip.tsx";
 import twas from "twas";
 import { greaterThan, parse } from "@std/semver";
+import { DownloadTimelines } from "../../../utils/data.ts";
+import { Sparkline } from "./Sparkline.tsx";
 
 interface PackageHeaderProps {
   package: Package;
+  downloads?: DownloadTimelines;
   selectedVersion?: PackageVersionWithUser;
 }
 
 export function PackageHeader({
   package: pkg,
+  downloads,
   selectedVersion,
 }: PackageHeaderProps) {
   const runtimeCompat = (
     <RuntimeCompatIndicator runtimeCompat={pkg.runtimeCompat} />
   );
+
+  console.log("RENDER HEADER", downloads);
 
   const selectedVersionSemver = selectedVersion &&
     parse(selectedVersion.version);
@@ -189,7 +195,7 @@ export function PackageHeader({
             )}
           </div>
 
-          <div>
+          <div class="flex flex-col md:flex-row gap-2 md:gap-8 items-between">
             {selectedVersion?.createdAt && (
               <div class="flex flex-row items-baseline md:items-end md:flex-col gap-2 md:gap-1.5 text-sm font-bold">
                 <div>Published</div>
@@ -205,6 +211,16 @@ export function PackageHeader({
                     twas(new Date(selectedVersion.createdAt).getTime())
                   } (${selectedVersion.version})`}
                 </div>
+              </div>
+            )}
+
+            {downloads && (
+              <div class="flex flex-row items-baseline md:items-end md:flex-col gap-2 md:gap-1.5 text-sm font-bold">
+                <div>Downloads</div>
+                <Sparkline
+                  downloads={downloads}
+                  version={selectedVersion?.version}
+                />
               </div>
             )}
           </div>
