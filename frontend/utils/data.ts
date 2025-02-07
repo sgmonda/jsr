@@ -11,6 +11,7 @@ import {
   PackageVersionWithUser,
   Scope,
   ScopeMember,
+  TimeCount,
 } from "./api_types.ts";
 
 export async function packageData(
@@ -164,29 +165,28 @@ export type DownloadTimelines = Record<string | "total", Timeline>;
 const toTimelines = (
   data: PackageDownloads | null,
 ): DownloadTimelines => {
-  console.log("TO TIMELINE", data);
-  return {
-    current: [
-      { date: new Date("2024-10-03T00:00:00.000Z"), value: 30 },
-      { date: new Date("2024-10-04T00:00:00.000Z"), value: 40 },
-      { date: new Date("2024-10-05T00:00:00.000Z"), value: 50 },
-      { date: new Date("2024-10-06T00:00:00.000Z"), value: 60 },
-      { date: new Date("2024-10-07T00:00:00.000Z"), value: 30 },
-      { date: new Date("2024-10-08T00:00:00.000Z"), value: 80 },
-      { date: new Date("2024-10-09T00:00:00.000Z"), value: 76 },
-      { date: new Date("2024-10-10T00:00:00.000Z"), value: 20 },
-    ],
-    "0.1.2": [
-      { date: new Date("2024-10-03T00:00:00.000Z"), value: 10 },
-      { date: new Date("2024-10-04T00:00:00.000Z"), value: 90 },
-      { date: new Date("2024-10-05T00:00:00.000Z"), value: 30 },
-      { date: new Date("2024-10-06T00:00:00.000Z"), value: 40 },
-      { date: new Date("2024-10-07T00:00:00.000Z"), value: 30 },
-      { date: new Date("2024-10-08T00:00:00.000Z"), value: 10 },
-      { date: new Date("2024-10-09T00:00:00.000Z"), value: 26 },
-      { date: new Date("2024-10-10T00:00:00.000Z"), value: 90 },
-    ],
+  const toTimeline = (data?: TimeCount[]): Timeline => {
+    const dates = new Set(data?.map((point) => point.timeBucket));
+    const last7Dates = Array.from(dates).sort().slice(-7);
+
+    const getDateValue = (date: Date) => {
+      const points = data?.filter((point) => point.timeBucket === date);
+      return points?.reduce((acc, point) => acc + point.count, 0) ?? 0;
+    };
+
+    return last7Dates.map((date) => ({
+      date,
+      value: getDateValue(date),
+    }));
   };
+
+  return Object.fromEntries([
+    ["total", toTimeline(data?.total)],
+    ...(data?.recentVersions || []).map(({ version, downloads }) => [
+      version,
+      toTimeline(downloads),
+    ]),
+  ]);
 };
 
 export interface DocsData extends PackageData {

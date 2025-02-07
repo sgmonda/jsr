@@ -167,7 +167,7 @@ export type PackageDownloads = {
 };
 
 export type TimeCount = {
-  kind: "jsr_meta";
+  kind: "jsr_meta" | "npm_tarball";
   timeBucket: Date;
   count: number;
 };
